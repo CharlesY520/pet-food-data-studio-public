@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pet Food Data Studio · 公开体验版</title>
+  <meta name="description" content="宠物食品资料只读筛选与比较体验版">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">PET FOOD DATA STUDIO · PUBLIC TRIAL</p><h1>宠物食品资料体验版</h1></div>
+    <span class="readonly-badge">只读体验</span>
+  </header>
+  <main>
+    <section class="notice"><strong>这是阶段性资料体验版</strong><span>仅用于筛选、比较和收集建议，不构成营养合格判断、功效证明或购买推荐。部分记录的口径不同，未知值不会按 0 处理。</span></section>
+    <section class="layout">
+      <aside class="filters">
+        <div class="filter-title"><h2>查找产品</h2><button id="reset" class="link-button">重置</button></div>
+        <label>搜索产品<input id="search" type="search" placeholder="品牌、系列、产品、口味"></label>
+        <label>品牌<select id="brand"><option value="">全部品牌</option></select></label>
+        <div class="two-col"><label>工艺<select id="process"><option value="">全部</option></select></label><label>阶段<select id="stage"><option value="">全部</option></select></label></div>
+        <label>进口属性<select id="importStatus"><option value="">全部</option></select></label>
+        <label>功能<select id="function"><option value="">全部功能</option></select></label>
+        <fieldset><legend>范围筛选</legend><div class="range"><label>蛋白最低<input id="proteinMin" type="number" step="0.1"></label><label>蛋白最高<input id="proteinMax" type="number" step="0.1"></label></div><div class="range"><label>脂肪最低<input id="fatMin" type="number" step="0.1"></label><label>脂肪最高<input id="fatMax" type="number" step="0.1"></label></div><div class="range"><label>价格最低<input id="priceMin" type="number" step="0.1"></label><label>价格最高<input id="priceMax" type="number" step="0.1"></label></div></fieldset>
+        <p class="small">价格为记录中的参考元/斤，不保证为当前售价。磷和水溶性氯化物只作为记录指标展示，不直接等于低磷或低盐。</p>
+      </aside>
+      <section class="content">
+        <div id="summary" class="summary"></div>
+        <section class="panel"><div class="panel-title"><h2>营养分布</h2><span>参考线：35%蛋白 · 15%脂肪</span></div><div id="chart" class="chart"></div></section>
+        <section class="panel"><div class="panel-title"><h2>产品列表</h2><label class="page-size">每页<select id="pageSize"><option>15</option><option>30</option><option>50</option></select>款</label></div><div class="table-wrap"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div><div class="pager"><button id="prev">上一页</button><span id="page"></span><button id="next">下一页</button></div></section>
+      </section>
+    </section>
+  </main>
+  <dialog id="detail"><button id="close" class="close">×</button><div id="detailBody"></div></dialog>
+  <script src="data.js"></script><script src="app.js"></script>
+</body>
+</html>
