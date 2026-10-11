@@ -1,4 +1,8 @@
 (() => {
+  window.addEventListener('error', event => {
+    const box = document.getElementById('summary');
+    if (box && event?.message) box.textContent = `页面加载遇到问题：${event.message}`;
+  });
   const all = window.PUBLIC_PET_FOOD_DATA.products || [];
   const $ = id => document.getElementById(id);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
