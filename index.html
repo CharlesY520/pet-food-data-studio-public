@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pet Food Data Studio · 公开体验版</title>
-  <meta name="description" content="宠物食品资料只读筛选与比较体验版">
-  <link rel="stylesheet" href="styles.css">
+  <meta name="description" content="宠物食品资料只读筛选、排序、图形与多款比较体验版">
+  <link rel="stylesheet" href="styles.css?v=public-v0.2">
 </head>
 <body>
   <header class="topbar">
@@ -13,7 +13,7 @@
     <span class="readonly-badge">只读体验</span>
   </header>
   <main>
-    <section class="notice"><strong>这是阶段性资料体验版</strong><span>仅用于筛选、比较和收集建议，不构成营养合格判断、功效证明或购买推荐。部分记录的口径不同，未知值不会按 0 处理。</span></section>
+    <section class="notice"><strong>阶段性公开体验版</strong><span>用于查找、筛选、排序、图形和多款比较，不构成营养合格判断、功效证明或购买推荐。未知值不会按 0 处理。</span></section>
     <section class="layout">
       <aside class="filters">
         <div class="filter-title"><h2>查找产品</h2><button id="reset" class="link-button">重置</button></div>
@@ -27,12 +27,41 @@
       </aside>
       <section class="content">
         <div id="summary" class="summary"></div>
-        <section class="panel"><div class="panel-title"><h2>营养分布</h2><span>参考线：35%蛋白 · 15%脂肪</span></div><div id="chart" class="chart"></div></section>
-        <section class="panel"><div class="panel-title"><h2>产品列表</h2><label class="page-size">每页<select id="pageSize"><option>15</option><option>30</option><option>50</option></select>款</label></div><div class="table-wrap"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div><div class="pager"><button id="prev">上一页</button><span id="page"></span><button id="next">下一页</button></div></section>
+        <section class="view-switcher" aria-label="公开分析视图">
+          <button class="view-button active" data-view="nutrition">营养分布</button>
+          <button class="view-button" data-view="price">价格关系</button>
+          <button class="view-button" data-view="compare">多款比较 <span id="selectedCount">0</span></button>
+        </section>
+        <section id="chartPanel" class="panel">
+          <div class="panel-title"><div><h2 id="chartTitle">粗蛋白 × 粗脂肪</h2><p id="chartSubtitle" class="small">图上点可悬停查看产品；同一位置的产品会合并显示数量。</p></div><span id="chartCount"></span></div>
+          <details class="chart-settings" open><summary>图形设置：坐标轴、参考交点、颜色和点大小</summary>
+            <div class="chart-controls">
+              <label>X轴<select id="xAxis"><option value="protein">粗蛋白 %</option><option value="fat">粗脂肪 %</option><option value="pricePerJin">参考价 元/斤</option><option value="phosphorus">磷记录 %</option><option value="chloride">氯化物记录 %</option></select></label>
+              <label>Y轴<select id="yAxis"><option value="protein">粗蛋白 %</option><option value="fat" selected>粗脂肪 %</option><option value="pricePerJin">参考价 元/斤</option><option value="phosphorus">磷记录 %</option><option value="chloride">氯化物记录 %</option></select></label>
+              <label>点颜色<select id="pointColor"><option value="importStatus">进口 / 国产</option><option value="process">工艺</option><option value="function">功能</option></select></label>
+              <label>点大小<select id="pointSize"><option value="uniform">统一大小</option><option value="pricePerJin">参考价格（面积）</option></select></label>
+              <label><span id="xOriginLabel">X轴参考交点</span><input id="xOrigin" type="number" step="0.1" value="35"></label>
+              <label><span id="yOriginLabel">Y轴参考交点</span><input id="yOrigin" type="number" step="0.1" value="15"></label>
+              <button id="resetOrigin" class="secondary-button" type="button">恢复当前指标默认值</button>
+            </div>
+            <div class="price-range"><label>图中价格最低<input id="chartPriceMin" type="range" min="0" max="600" step="0.1" value="0"></label><label>图中价格最高<input id="chartPriceMax" type="range" min="0" max="600" step="0.1" value="600"></label><output id="chartPriceOutput">图中价格不限</output><button id="clearChartPrice" class="link-button" type="button">清除图中价格限制</button></div>
+          </details>
+          <p id="chartHint" class="chart-hint"></p>
+          <div id="chart" class="chart" role="group" aria-label="散点图"></div>
+        </section>
+        <section id="comparePanel" class="panel" hidden>
+          <div class="panel-title"><div><h2>多款横向比较</h2><p class="small">只比较你从产品列表勾选的 2–6 款，不因筛选变化偷偷替换产品。</p></div><button id="clearSelection" class="link-button" type="button">清空选择</button></div>
+          <div id="compareContent" class="compare-content"></div>
+        </section>
+        <section class="panel products-panel">
+          <div class="panel-title"><div><h2>产品列表</h2><p class="small">点击表头可按指标排序；再次点击为倒序，第三次恢复原始顺序。</p></div><label class="page-size">每页<select id="pageSize"><option>15</option><option>30</option><option>50</option></select>款</label></div>
+          <div class="selection-bar"><span id="selectionStatus">勾选产品后可进行 2–6 款比较</span><button id="compareSelected" class="primary-button" type="button" disabled>比较已选产品</button></div>
+          <div class="table-wrap"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div><div class="pager"><button id="prev">上一页</button><span id="page"></span><button id="next">下一页</button></div>
+        </section>
       </section>
     </section>
   </main>
   <dialog id="detail"><button id="close" class="close">×</button><div id="detailBody"></div></dialog>
-  <script src="data.js?v=bb4f012"></script><script src="app.js?v=bb4f012"></script>
+  <script src="data.js?v=public-v0.2"></script><script src="app.js?v=public-v0.2"></script>
 </body>
 </html>
