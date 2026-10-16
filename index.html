@@ -3,12 +3,542 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0;url=https://app.petfoodstudio.workers.dev/">
-  <meta name="referrer" content="strict-origin-when-cross-origin">
-  <title>猫粮数据工作台 · 正在前往新版</title>
-  <style>body{margin:0;background:#f8f6f1;color:#253a32;font:17px/1.7 system-ui,sans-serif}main{max-width:560px;margin:15vh auto;padding:28px}a{color:#28624a}small{color:#66736c}</style>
-</head>
-<body>
-  <main><h1>猫粮数据工作台</h1><p>正在前往完整只读版。若未自动打开，请点击下面的链接。</p><p><a href="https://app.petfoodstudio.workers.dev/">打开猫粮数据工作台 →</a></p><small>査老师的宠物小灶 · 原链接继续有效</small></main>
-</body>
+  <title>Pet Food Data Studio</title>
+  <meta name="description" content="猫粮事实筛选、已收录产品分布与 SKU 横向比较工具">
+  <link rel="stylesheet" href="styles.css?v=internal-v0.6.37">
+  <link rel="stylesheet" href="feedback.css?v=internal-v0.6.37">
+<link rel="preload" as="script" href="release-app-46e21d38d4b8ab44.js"></head>
+<body data-audience="visitor">
+  <header class="topbar">
+    <div class="brand-lockup">
+      <span class="pet-mark" aria-hidden="true"><i></i><b></b></span>
+      <p class="eyebrow">PET FOOD DATA STUDIO · v0.7.0</p>
+      <h1>猫粮数据工作台</h1>
+      <p class="brand-subtitle">配方 · 营养 · 工艺 · 品牌</p>
+    </div>
+    <div class="topbar-meta" id="topbar-meta"></div>
+    <button class="text-button" id="open-data-guide" type="button">使用与指标说明</button>
+  </header>
+
+  <main>
+    <nav class="workspace-nav" aria-label="工作区">
+      <button type="button" class="workspace-tab" data-workspace="library" aria-pressed="true">产品库</button>
+      <button type="button" class="workspace-tab" data-workspace="analysis" aria-pressed="false">分析与比较</button>
+      <!-- D097：标签由「品牌情报」改为「情报库」（该页同时含品牌情报与工厂情报两种模式）。 -->
+      <button type="button" class="workspace-tab" data-workspace="intel" aria-pressed="false">情报库</button>
+      <button type="button" class="workspace-tab" data-workspace="manage" aria-pressed="false">资料管理</button>
+      <span id="workspace-selection">未选产品</span>
+      <a class="secondary-button" id="pending-products-link" href="?catalog=pending">待补新品（10）</a>
+    </nav>
+    <section class="mode-banner" aria-label="资料编辑入口">
+      <div><strong id="mode-title">正在连接编辑入口…</strong><p id="mode-help"></p></div>
+      <button class="primary-button" id="jump-edit" type="button">修改产品资料</button>
+    </section>
+    <section class="panel saved-views" aria-label="常用筛选与比较方案" hidden>
+      <details id="saved-views-panel">
+        <summary>常用方案 · 保存筛选与比较组合</summary>
+        <div class="saved-view-controls">
+          <label>方案名称<input id="view-name" type="text" maxlength="60" placeholder="如：进口毛球粮对比"></label>
+          <button class="secondary-button" id="save-view" type="button">保存当前组合</button>
+          <label>已保存方案<select id="saved-view"><option value="">请选择方案</option></select></label>
+          <button class="primary-button" id="restore-view" type="button" disabled>恢复方案</button>
+          <button class="text-button" id="delete-view" type="button" disabled>删除方案</button>
+          <button class="text-button" id="undo-delete-view" type="button" hidden>撤销删除</button>
+        </div>
+        <p class="theme-note">保存筛选、显示列、主次排序、已选SKU、图轴/基准/颜色/大小、条件与权重配置及本次适用限制；不保存产品事实、编辑草稿或人工分项判断。恢复后按最新资料重新计算，可能与保存时不同。只在当前浏览器和地址保留，最多20个；不自动恢复或覆盖同名方案。</p>
+        <p id="view-message" class="theme-note" role="status" aria-live="polite"></p>
+      </details>
+    </section>
+    <section class="workspace">
+      <aside class="filters" aria-label="筛选条件" tabindex="0">
+        <div class="filter-heading">
+          <h2>查找产品</h2>
+          <button class="text-button" id="reset-filters">重置</button>
+        </div>
+        <label>搜索产品
+          <input id="search" type="search" placeholder="品牌、系列、产品、口味">
+        </label>
+        <label>品牌
+          <select id="brand-filter"><option value="">全部品牌</option></select>
+        </label>
+        <div class="filter-grid">
+          <label>工艺
+            <select id="process-filter"><option value="">全部</option></select>
+          </label>
+          <label>阶段
+            <select id="stage-filter"><option value="">全部</option></select>
+          </label>
+        </div>
+        <label>进口属性
+          <select id="import-filter"><option value="">全部</option></select>
+        </label>
+        <label>功能
+          <select id="function-filter"><option value="">全部产品</option></select>
+        </label>
+        <p class="theme-note function-note">功能定位与研究依据见产品详情。</p>
+        <div class="filter-grid production-filters">
+          <label>生产方式<select id="production-mode-filter"><option value="">全部</option><option value="自有">自有</option><option value="代工">代工</option><option value="empty">未填写</option></select></label>
+          <label>工厂名称<select id="factory-filter"><option value="">全部工厂</option><option value="filled">有工厂名称</option><option value="empty">未填写</option></select></label>
+        </div>
+        <div class="core-quick" aria-label="核心产品快捷入口">
+          <button class="core-toggle-button" id="core-toggle" type="button" aria-pressed="false">只看核心产品</button>
+          <span class="visually-hidden" id="core-quick-status" aria-live="polite"></span>
+        </div>
+        <div class="basic-ranges" aria-label="常用营养与价格范围">
+          <fieldset><legend>粗蛋白 %</legend><div class="range-row"><input id="protein-min" type="number" step="0.1" placeholder="最低" aria-label="粗蛋白最低"><span>—</span><input id="protein-max" type="number" step="0.1" placeholder="最高" aria-label="粗蛋白最高"></div></fieldset>
+          <fieldset><legend>粗脂肪 %</legend><div class="range-row"><input id="fat-min" type="number" step="0.1" placeholder="最低" aria-label="粗脂肪最低"><span>—</span><input id="fat-max" type="number" step="0.1" placeholder="最高" aria-label="粗脂肪最高"></div></fieldset>
+          <fieldset><legend>参考价 元/斤</legend><div class="range-row"><input id="price-min" type="number" step="0.1" placeholder="最低" aria-label="参考价最低"><span>—</span><input id="price-max" type="number" step="0.1" placeholder="最高" aria-label="参考价最高"></div></fieldset>
+        </div>
+        <details class="filter-disclosure" id="more-filters">
+          <summary>高级筛选 <span id="more-filter-count"></span></summary>
+        <!-- D100：按 Charles 要求，这里去掉「我的分组」与「对比备注关键词」两个入口。
+             分组/备注仍是产品“编辑”里的管理记录（详情页照旧展示、散点颜色与图例仍可按分组），
+             只是不再作为筛选条件出现在侧栏。 -->
+        <label>成分关键词（配料 / 添加剂 / 营养成分）
+          <input id="ingredient-keyword" type="search" placeholder="如：鸡肉 牛磺酸（同时包含）">
+        </label>
+        <p class="theme-note">多词用空格或逗号分隔，须全部命中。查配料原文、营养添加剂原文、营养成分（保证值）原文三类成分文字；不查页面声称、产品名或描述。仅为原文字词，不判断含量、否定语义或功效。</p>
+        <label>描述关键词（产品描述原文）
+          <input id="description-keyword" type="search" placeholder="如：单一动物蛋白 无谷（同时包含）">
+        </label>
+        <p class="theme-note">查产品描述原文：工艺原话、页面卖点/声称、原料溯源、喂养实验/研究、工厂进口、保质期、规格、品牌与市场背景、功能原文以及品牌/系列/产品/口味名称（含旧名）。成分文字请用上面的「成分关键词」；同样是原文字词，不判断否定语义或功效。</p>
+        <!-- D099：这三列来自品牌与工厂情报记录，此前能加到表头却不能排序、没有筛选入口，现补齐。 -->
+        <label>品牌创立（情报记录）
+          <select id="brand-founded-filter"><option value="">全部</option><option value="filled">有记录</option><option value="empty">未记录</option></select>
+        </label>
+        <label>工厂成立（情报记录）
+          <select id="factory-founded-filter"><option value="">全部</option><option value="filled">有记录</option><option value="empty">未记录</option></select>
+        </label>
+        <label>工厂规模（情报记录）
+          <select id="factory-scale-filter"><option value="">全部</option><option value="filled">有记录</option><option value="empty">未记录</option></select>
+        </label>
+        <p class="theme-note">品牌创立 / 工厂成立 / 工厂规模来自品牌与工厂情报（只读内存层，不写回 Excel）；未记录不等于不存在，"未记录"只选中当前没有该条记录的产品，缺失不按 0 处理。这三列也可加入表头，点表头排序、点漏斗筛选。</p>
+        </details>
+        <!-- D100：左侧不再单列「营养与动物性成分」类目（Charles：这个类目筛选不需要了）。
+             但这四个控件本身必须留在 DOM 里——磷 / 水溶性氯化物 / 动物性原料 / 动物性蛋白
+             四列的表头漏斗（D099）与左侧栏共用这几个控件，直接删掉会连带砍掉表头筛选。
+             所以改为放在隐藏容器里，只把侧栏这个类目收掉，能力一条不减。 -->
+        <div id="nutrition-filters" hidden aria-hidden="true">
+          <fieldset><legend>磷筛选</legend><label>比较口径<select id="phosphorus-mode"><option value="">不筛</option><option value="bounded">明确上限/等值（适合低磷）</option><option value="declared">有原文声明值（候选）</option><option value="unknown">口径不足 / 待核</option></select></label><div class="range-row"><input id="phosphorus-min" type="number" step="0.01" placeholder="最低"><span>—</span><input id="phosphorus-max" type="number" step="0.01" placeholder="最高"></div><small>优先按同基准比较；“≥”只代表最低保证值，不自动判定低磷。</small></fieldset>
+          <fieldset><legend>水溶性氯化物参考</legend><label>比较口径<select id="chloride-mode"><option value="">不筛</option><option value="bounded">明确上限/等值</option><option value="declared">有原文声明值（候选）</option><option value="unknown">口径不足 / 待核</option></select></label><div class="range-row"><input id="chloride-min" type="number" step="0.01" placeholder="最低"><span>—</span><input id="chloride-max" type="number" step="0.01" placeholder="最高"></div><small>水溶性氯化物不是氯化钠，也不等于咸度；氯化钠/氯化钾仅显示是否出现在添加剂原文。</small></fieldset>
+          <fieldset><legend>动物性成分</legend><label>动物性原料占比<select id="animal-ingredient-mode"><option value="">不筛</option><option value="comparable">有明确单位/分母</option><option value="unknown">单位或分母待核</option></select></label><div class="range-row"><input id="animal-ingredient-min" type="number" min="0" max="100" step="0.1" placeholder="最低"><span>—</span><input id="animal-ingredient-max" type="number" min="0" max="100" step="0.1" placeholder="最高"></div><label>动物性蛋白 / 总蛋白<select id="animal-protein-mode"><option value="">不筛</option><option value="comparable">有明确单位/分母</option><option value="unknown">单位或分母待核</option></select></label><div class="range-row"><input id="animal-protein-min" type="number" min="0" max="100" step="0.1" placeholder="最低"><span>—</span><input id="animal-protein-max" type="number" min="0" max="100" step="0.1" placeholder="最高"></div><small>动物性原料比例与动物性蛋白比例分开；只有同口径时才可派生动物来源蛋白密度。</small></fieldset>
+        </div>
+        <details class="filter-disclosure filter-help"><summary>筛选说明</summary><div class="filter-note">条件同时作用于统计、散点和列表。未知值不按0处理；“人工确认核心”不含样板候选。更多筛选收起后，已填条件仍有效，可从结果上方查看或重置。磷、水溶性氯化物、动物性原料与动物性蛋白改为在表头筛选：把对应列加进表头，点列头漏斗即可（值与左侧共用一套条件）。</div></details>
+        <!-- D099：每个可加入表头的营养指标都配一组最低/最高输入，供表头漏斗使用。
+             它们不在左侧栏铺开（保持筛选栏简洁），由 app.js 按列动态生成，仍是同一套筛选链路。 -->
+        <div id="metric-range-controls" hidden aria-hidden="true"></div>
+      </aside>
+
+      <div class="content" role="region" aria-label="图表与产品结果" tabindex="0">
+        <div class="mobile-library-tools">
+          <label class="mobile-search-label">查找产品<input id="mobile-search" type="search" placeholder="品牌、系列、产品或口味"></label>
+          <div><button type="button" class="secondary-button" id="mobile-filters" aria-expanded="false">筛选</button><button type="button" class="secondary-button" id="mobile-chart" aria-pressed="false">看图表</button><button type="button" class="text-button" id="mobile-table" aria-pressed="false">完整表格</button></div>
+        </div>
+        <div class="query-summary" id="query-summary" role="status"></div>
+        <input type="hidden" id="legend-mode"><input type="hidden" id="legend-category">
+        <!-- D096：四张统计卡（筛选结果 / 覆盖品牌 / 蛋白中位数 / 元每斤记录中位数）回到产品库主页面。
+             此前只挂在「分析与比较」内，产品库看不到；现在放在共享内容区，产品库与分析页都能看到。 -->
+        <section class="summary-strip" id="summary-strip"></section>
+        <section id="workspace-library" class="workarea" aria-label="产品库"><div id="library-chart"></div></section>
+        <section id="workspace-analysis" class="workarea" aria-label="分析与比较" hidden>
+          <div class="analysis-nav" aria-label="分析类型">
+            <button type="button" data-analysis="nutrition" aria-pressed="true">营养分布</button>
+            <button type="button" data-analysis="price" aria-pressed="false">价格关系</button>
+            <button type="button" data-analysis="compare" aria-pressed="false">多款比较</button>
+            <button type="button" data-analysis="score" aria-label="偏好与权重" aria-pressed="false">偏好与权重 <small class="trial-badge" aria-hidden="true">测试中</small></button>
+          </div>
+          <p id="analysis-context" class="analysis-context" role="status"></p>
+          <div id="analysis-chart"></div>
+          <section id="analysis-compare" class="panel" hidden>
+            <h2>多款比较</h2><p class="theme-note">比较2–6款产品的营养、配方、价格与生产信息。</p>
+            <button class="secondary-button" type="button" id="back-to-library">去产品库选产品</button>
+            <label class="comparison-focus">比较重点<select id="comparison-focus"><option value="">整体差异</option><option value="nutrition">营养指标</option><option value="price">预算与价格</option><option value="animalRatios">配方与动物性成分</option><option value="feedingStudy">功能研究依据</option></select></label>
+            <details class="comparison-metric-picker"><summary>选择比较指标</summary><p class="theme-note">初始沿用产品列表的指标；这里调整不改变列表、筛选或已选产品。</p><div id="comparison-metrics"></div></details>
+            <div id="mobile-compare-pair"><p>手机先看两款，可切换其他已选产品。</p><label>第一款<select id="compare-first"></select></label><label>第二款<select id="compare-second"></select></label></div>
+            <label class="compare-difference"><input type="checkbox" id="compare-differences"> 只看差异</label>
+            <button type="button" class="text-button" id="compare-reset-view">恢复默认对照</button><div id="compare-inline"></div>
+          </section>
+          <div id="analysis-scoring" hidden></div>
+        </section>
+        <section id="workspace-intel" class="workarea" aria-label="情报库（品牌与工厂）" hidden></section>
+        <section id="workspace-manage" class="workarea" aria-label="资料管理" hidden>
+          <details class="panel" id="sample-panel">
+            <summary>拆分样板与例外说明（按需查看）</summary>
+            <div class="panel-heading"><div><p class="section-kicker">数据拆解样板 · 草案</p><h2>诚实一口 P40 鸡鱼味</h2></div><button class="secondary-button" id="sample-open-product" type="button">查看现役产品</button></div>
+            <p class="theme-note">先确定一款的拆法，再用同品牌与第二品牌验证。这里展示草案，不改Excel、不新增专业分数。</p>
+            <div id="sample-content"></div>
+          </details>
+          <div id="management-tools" class="panel">
+            <h2>维护产品资料</h2><p class="theme-note">新资料用试行整理模板带入，先预览再写回；旧款从产品库点“编辑”，可纠正名称/口味并保留旧名。未知标准不必先补齐。</p>
+          </div>
+          <div id="management-products"></div>
+          <div id="management-brand"></div>
+          <div id="management-verification"></div>
+          <section class="panel app-footer" id="data-source-notes" aria-label="数据来源与边界说明">
+            <div class="panel-heading"><div><p class="section-kicker">来源与边界</p><h2>数据来自公开资料</h2></div></div>
+            <p><strong>产品事实</strong>：以 38 份品牌工作簿为主本整理；品牌与工厂情报（成立/背景/规模/舆情/召回）来自官网、工商公示、权威媒体等公开信息核验，来源分级 [S] 官网/官方 · [T] 权威媒体/监管 · [C] 一般来源 · [U] 未证实；冲突口径并列记录、不合并。</p>
+            <p>本看板为只读快照（生成时间 <span id="footer-generated-at">—</span>）；价格为参考记录，随品牌活动浮动，非固定售价；≥/≤ 为保证值非实测。修改产品资料请走编辑入口并留痕，写回规则见《工厂信息维护规范》。</p>
+          </section>
+        </section>
+
+        <section class="panel chart-panel" id="chart-panel">
+          <div class="panel-heading">
+            <div><p class="section-kicker">已收录产品分布</p><h2 id="chart-title">粗蛋白 × 粗脂肪</h2></div>
+            <div class="legend" id="chart-legend" aria-label="点击类别筛选全部视图"></div>
+          </div>
+          <details class="tool-disclosure" id="chart-settings">
+          <summary>图形设置 <span id="chart-setting-summary">坐标轴、参考交点、颜色、价格</span></summary>
+          <div class="chart-controls" aria-label="散点图比较基准"><label>价格图范围<select id="chart-price-range"><option value="">全部价格</option><option value="100">放大 0–100 元/斤</option></select></label><p id="chart-range-note" role="status"></p>
+            <label>X轴<select id="x-axis"><option value="protein">粗蛋白 %</option><option value="fat">粗脂肪 %</option><option value="pricePerJin">参考单价</option></select></label>
+            <label>Y轴<select id="y-axis"><option value="protein">粗蛋白 %</option><option value="fat" selected>粗脂肪 %</option><option value="pricePerJin">参考单价</option></select></label>
+            <label>点大小<select id="point-size"><option value="uniform">统一大小（重叠显示款数）</option><option value="pricePerJin">参考价格（面积）</option></select></label>
+            <label>点颜色<select id="point-color"><option value="imported">进口 / 国产</option><option value="process">工艺</option><option value="function">功能</option><option value="theme" hidden>旧版：描述主题</option><option value="group" hidden>内部：我的分组</option></select></label>
+            <span>参考线仅用于观察分布，可自行调整</span>
+            <label><span id="x-origin-label">粗蛋白 % 基准</span><input id="protein-origin" type="number" min="0" max="100" step="0.5" value="35"></label>
+            <label><span id="y-origin-label">粗脂肪 % 基准</span><input id="fat-origin" type="number" min="0" max="100" step="0.5" value="15"></label>
+            <button class="secondary-button" id="reset-origin" type="button">恢复当前指标默认基准</button>
+          </div>
+          <div class="price-sliders" aria-label="价格交互筛选">
+            <label>最低参考元/斤<input id="price-slider-min" type="range" min="0" max="600" step="0.1" value="0"></label>
+            <label>最高参考元/斤<input id="price-slider-max" type="range" min="0" max="600" step="0.1" value="600"></label>
+            <output id="price-slider-label"></output><button class="secondary-button" id="clear-price" type="button">价格不限</button>
+          </div>
+          </details>
+          <details class="data-explanation" id="chart-help"><summary>图形说明</summary><p class="chart-hint" id="chart-hint">图上数值按当前筛选结果显示；悬停或聚焦圆点查看产品名。</p></details>
+          <div id="scatter" class="scatter" role="group" aria-label="粗蛋白和粗脂肪散点图"></div>
+        </section>
+
+        <section class="panel" id="scoring-panel">
+          <section id="selection-lab" aria-label="选粮偏好实验室"></section>
+          <details class="tool-disclosure" id="legacy-condition-analysis"><summary>高级工具 · 营养与配料条件分析（保留原设置）</summary>
+          <section id="auto-panel" aria-labelledby="auto-title">
+            <h2 id="auto-title">按我的偏好分析</h2>
+            <p class="chart-hint">改资料或条件后自动更新。结果只表示条件匹配，不是质量评级；缺口只影响对应分项。</p>
+            <div class="chart-controls">
+              <label>分析方式<select id="auto-mode"><option value="off">只看资料（默认）</option><option value="custom">启用条件分析</option></select></label>
+              <label>权重方案<select id="auto-scheme"><option value="daily">日常 · 40/35/25</option><option value="full">完整五维 · 30/25/20/15/10</option><option value="custom">自定义</option></select></label>
+              <button type="button" class="secondary-button" id="auto-select-sample">选入三款样例</button>
+            </div>
+            <details id="auto-settings" hidden><summary>设置我的条件（没有专业默认阈值）</summary>
+              <div class="edit-grid">
+                <label>使用场景<select id="auto-scenario"><option value="adult">普通成年猫候选</option><option value="other">其他 / 疾病 / 处方：不算总分</option></select></label>
+                <label>营养目标基准<select id="auto-basis"><option value="as_fed">原物质 / 原样</option><option value="dry_matter">干物质</option></select></label>
+                <label>蛋白至少 %<input type="number" id="auto-proteinMin" min="0" max="100" step="any" placeholder="不设条件留空"></label>
+                <label>脂肪至多 %<input type="number" id="auto-fatMax" min="0" max="100" step="any" placeholder="不设条件留空"></label>
+                <label>配料必含词<input id="auto-requiredWords" maxlength="1000" placeholder="如：鸡肉 南瓜；全部命中"></label>
+                <label>配料排除词<input id="auto-excludedWords" maxlength="1000" placeholder="只匹配文字，不证明无过敏原"></label>
+                <label>动物原料至少 %<input type="number" id="auto-animalIngredientMin" min="0" max="100" step="any" placeholder="可空"></label>
+                <label>动物原料目标分母<select id="auto-animalIngredientDenominator"><option value="input_mass">投料总质量</option><option value="finished_mass">成品总质量</option></select></label>
+                <label>动物来源蛋白 / 总蛋白至少 %<input type="number" id="auto-animalProteinMin" min="0" max="100" step="any" placeholder="可空"></label>
+                <label>预算上限 元/斤<input type="number" id="auto-budgetMax" min="0" step="any" placeholder="可空"></label>
+                <label>超预算缓冲 元/斤<input type="number" id="auto-budgetBuffer" min="0.01" step="any" value="20"></label>
+                <label>价格口径<select id="auto-priceScope"><option value="consistent">明确报价 / 单规格算术一致</option><option value="reference">所有单值参考价（含未对应）</option></select></label>
+              </div>
+              <p class="chart-hint">营养/比例条件可判断时：符合100，不符合0；无法从保证边界判断则未知。多条件等权合成该分项。配料仅比标签文字。预算内100，超过预算每一个缓冲距离下降100、最低0；便宜不等于品质好。未设置条件的启用维度保持未知，不自动跳过。</p>
+            </details>
+            <details id="auto-weights" hidden><summary>调整五维权重</summary><div class="edit-grid">
+              <label>营养<input type="number" id="auto-weight-nutrition" min="0" max="100" value="40"></label>
+              <label>配料<input type="number" id="auto-weight-ingredients" min="0" max="100" value="35"></label>
+              <label>功能证据<input type="number" id="auto-weight-evidence" min="0" max="100" value="0"></label>
+              <label>生产透明<input type="number" id="auto-weight-transparency" min="0" max="100" value="0"></label>
+              <label>预算<input type="number" id="auto-weight-value" min="0" max="100" value="25"></label>
+            </div><p class="chart-hint">功能证据与透明度没有自动专业判分；启用这两项会保留未知，不从资料齐全、进口或研究声称给分。</p></details>
+            <p id="auto-status" role="status"></p>
+            <div id="auto-results"></div>
+            <div class="chart-controls">
+              <button type="button" class="secondary-button" id="auto-compare">看横向比较</button>
+              <button type="button" class="secondary-button" id="auto-chart">看价格 × 条件匹配图</button>
+              <button type="button" class="secondary-button" id="auto-export">导出条件与分项CSV</button>
+            </div>
+            <p class="chart-hint">结果按当前资料、条件和权重重算，不保存旧分为产品事实；本次条件组合不跨刷新保存。</p>
+          </section>
+          </details>
+          <details class="tool-disclosure" id="manual-trial-disclosure"><summary>内部高级工具 · 人工试评与校准</summary>
+          <section id="trial-panel" aria-labelledby="trial-title">
+            <h2 id="trial-title">多维试评与权重</h2>
+            <p class="chart-hint">先看已选产品的五维资料，再填有依据的候选分。不是系统自动品质评级；进口、鲜肉、工艺和信息齐全不自动加分。缺任何启用项总分留空，不按剩余项抬高分数。</p>
+            <div class="chart-controls">
+              <label>评价方式<select id="trial-mode"><option value="off">只看资料（默认）</option><option value="custom">自定义候选试评</option></select></label>
+              <label>权重方案<select id="trial-weight-scheme" aria-label="权重方案"><option value="daily">日常选购 · 40/35/25</option><option value="full">完整五维 · 30/25/20/15/10</option><option value="custom">自定义权重</option></select></label>
+              <label>使用场景<select id="trial-scenario"><option value="adult">普通成年猫日常主食（候选）</option><option value="other">其他 / 疾病 / 处方（只记录分项）</option></select></label>
+              <button class="secondary-button" type="button" id="trial-reset">清空当前草稿</button>
+            </div>
+            <p class="chart-hint" id="trial-weight-hint"></p>
+            <details id="trial-config" hidden><summary>调整五维权重与判分依据（草案，可改）</summary><div class="score-rules" id="trial-rules"></div><p class="chart-hint">总分 = 各启用维度分 × 该权重 / 启用权重总和。候选分档仅供讨论，采用后仍需实际判据/出处，不自动填分；改场景或判分依据后旧分失效，重新确认才参与。准确标准另核原文，不沿用偏好演示区间。</p></details>
+            <p id="trial-status" role="status"></p>
+            <div id="trial-totals" class="trial-totals"></div>
+            <div id="trial-matrix"></div>
+            <details class="tool-disclosure"><summary>保存 / 恢复试评与导出</summary>
+              <p class="chart-hint">试评是你的候选判断，不写Excel事实。只在当前浏览器与同源地址保存；长期保留请下载JSON，可在其他浏览器导入。分项判断在这里单独保存。</p>
+              <div class="chart-controls">
+                <label>试评名称<input id="trial-name" maxlength="60" placeholder="可空，自动按时间命名"></label>
+                <button class="primary-button" type="button" id="trial-save">保存这次试评</button>
+                <label>已保存试评<select id="trial-saved"></select></label>
+                <button class="secondary-button" type="button" id="trial-restore" disabled>恢复试评</button>
+                <button class="secondary-button" type="button" id="trial-delete" disabled>移除试评</button>
+                <button class="secondary-button" type="button" id="trial-undo" hidden>撤销移除</button>
+                <button class="secondary-button" type="button" id="trial-export">下载当前JSON备份</button>
+                <button class="secondary-button" type="button" id="trial-csv">导出分项CSV</button>
+                <label>导入JSON为草稿<input type="file" accept=".json,application/json" id="trial-import"></label>
+              </div>
+            </details>
+            <p id="trial-message" role="status"></p>
+          </section>
+          </details>
+          <details class="tool-disclosure" id="scoring-disclosure">
+          <summary>内部高级工具 · 旧版目标匹配 <span id="scoring-disclosure-status">未启用</span></summary>
+          <p class="chart-hint">不评分为默认。开启后初始数字仅演示操作，请改成你的目标；不是专业标准、营养建议或推荐。保证值的上下界/干物质基准未完全结构化，只比较导入数值；蛋白不是越高越好，价格不是实时售价。功能声称、进口/国产、工艺不自动加分。</p>
+          <div class="chart-controls">
+            <label>评分模式<select id="score-mode"><option value="off">不评分，只看事实</option><option value="custom">自定义偏好（实验）</option></select></label>
+            <label>价格评分口径<select id="score-price-scope"><option value="single_consistent">明确包装或单规格算术一致</option><option value="reference">全部单值参考价（含未对应）</option></select></label>
+          </div>
+          <div class="score-rules" id="score-rules" hidden></div>
+          <p class="chart-hint" id="score-formula" hidden>目标区间内100分；超出区间后，每偏离一个“缓冲距离”下降100分，最低0分。权重自动归一化，设为0就不参与。缺任何已启用维度则不算总分、不进排名；资料覆盖率不是质量分。这里的规则与权重只用于当前查看，不写Excel。</p>
+          <p id="score-status" role="status"></p>
+          <div id="score-results"></div>
+          </details>
+        </section>
+
+        <section class="panel" id="brand-panel">
+          <details><summary>品牌资料与来源（展开查看，不是品牌评级）</summary>
+            <p class="chart-hint">只展示现役工作簿“品牌信息”已有记录；信息性质、原核验状态和出处原样保留，不把自述/待核变成已证实。这里不产生评分，也不把品牌背景套用为每款SKU的生产事实。</p>
+            <div class="chart-controls"><label>查看品牌<select id="brand-info-select"><option value="">请选择品牌</option></select></label><button class="secondary-button" id="brand-show-products" type="button" disabled>筛选这个品牌的产品</button></div>
+            <div id="brand-info-content"></div>
+          </details>
+        </section>
+
+        <section class="panel products-panel">
+          <div class="panel-heading list-heading">
+            <div><p class="section-kicker">产品列表</p><h2><span id="result-count">0</span> 款符合条件</h2></div>
+            <div class="list-actions">
+              <button class="secondary-button" id="jump-verification" type="button" hidden>按需核验</button>
+              <button class="secondary-button" id="export-csv" title="导出全量筛选结果，沿用当前可见列与主次排序；保留核心、生产方式和工厂名称。CSV供查阅，维护Excel在资料管理。">导出查阅CSV</button>
+              <button class="primary-button" id="open-compare" disabled>横向比较 <span id="compare-count">0</span> 款</button>
+            </div>
+          </div>
+          <div class="list-toolbar">
+            <label>在产品中查找
+              <input id="list-search" type="search" placeholder="品牌、系列、产品、口味">
+            </label>
+            <input type="hidden" id="list-sort" value="source">
+            <button class="text-button" id="reset-sort" type="button">恢复原始顺序</button>
+            <label class="page-size-control">每页显示<select id="page-size" aria-label="每页显示产品数量"><option value="15" selected>15款</option><option value="30">30款</option><option value="50">50款</option></select></label>
+            <button class="secondary-button pending-button" id="pending-import" type="button" aria-pressed="false">只看进口待核验 <span id="pending-count"></span></button>
+          </div>
+          <details class="column-picker" id="column-picker">
+          <summary>显示指标与多级排序 <span id="column-count"></span></summary>
+            <div class="column-picker-body">
+              <div class="column-picker-topline">
+                <label class="preset-select">快速预设（可选）
+                  <select id="table-preset-select" aria-label="选择常用指标预设">
+                    <option value="custom">当前自选</option>
+                    <option value="compact">简洁选粮</option>
+                    <option value="basic">基础营养与生产</option>
+                    <option value="minerals">磷与氯化物</option>
+                    <option value="price">价格与营养</option>
+                    <option value="animal">动物性成分</option>
+                  </select>
+                </label>
+                <p class="list-note">预设只是常用任务的一键起点；选完后仍可继续勾选、取消或排序，不增加新的数据口径。</p>
+              </div>
+              <label>查找指标<input id="column-search" type="search" placeholder="例如：磷、价格、牛磺酸"></label>
+              <div class="column-options" id="column-options" role="group" aria-label="选择显示列"></div>
+              <p class="list-note" id="column-message" role="status"></p>
+              <div class="secondary-sort-controls">
+                <label>同值时再按<select id="secondary-sort"><option value="">保持原顺序</option></select></label>
+                <label>次级方向<select id="secondary-direction"><option value="asc">从低到高</option><option value="desc">从高到低</option></select></label>
+              </div>
+            </div>
+          </details>
+          <p class="table-status" id="sort-note" role="status">表头点击：正序 → 倒序 → 原始顺序。</p>
+          <p class="table-status" id="core-save-status" role="status" aria-live="polite"></p>
+          <p class="list-note metric-notes"><span id="metric-reading-note">参考价不是实时售价；≥ / ≤ 是保证下限 / 上限，不是实测值。空白不代表零。</span> <button class="text-button" type="button" id="open-reading-guide">怎么比较？</button></p>
+          <div class="selection-toolbar" aria-label="产品选择与批量编辑">
+            <span id="selection-status" role="status">尚未选择产品</span>
+            <div id="selected-products" class="selected-products" aria-label="已选产品"></div>
+            <button class="secondary-button" id="select-page" type="button">选择本页</button>
+            <button class="text-button" id="clear-selection" type="button">清空选择</button>
+            <button class="secondary-button" id="selection-analysis" aria-label="偏好与权重" type="button" disabled>偏好与权重 <small class="trial-badge" aria-hidden="true">测试中</small></button>
+            <button class="primary-button" id="batch-core" type="button" hidden disabled>批量设置核心</button>
+            <button class="secondary-button" id="open-maintenance" type="button" hidden>资料维护 / 新增 SKU</button>
+          </div>
+          <details class="edit-guide" id="edit-guide">
+            <summary>修改说明与来源边界</summary>
+            <div class="edit-guide-content">
+              <p id="edit-guide-mode">从“编辑入口”打开本页后，可在产品行直接点“编辑”，填写修改原因并保存。系统会保留修改前 Excel 副本、更新现役表并重新生成看板；原始截图和 OCR 不会被修改。普通只读页面仍可查看来源路径。</p>
+              <p>当前“国产/进口”优先采用本项目对本款的人工确认，否则根据工作簿原文归类；详情和导出可回看依据。分类确认不补齐具体国家、工厂或手续信息。补证时分别核对<strong>这款成品</strong>的原产国、生产企业、中文背标、进口登记号与境内责任人，并记录适用SKU。新产品不会自动继承品牌分类。</p>
+            </div>
+          </details>
+          <div id="mobile-product-cards"></div>
+          <div class="table-wrap" id="product-table-wrap">
+            <table>
+              <thead><tr id="product-head"></tr></thead>
+              <tbody id="product-rows"></tbody>
+            </table>
+          </div>
+          <div class="empty-state" id="empty-state" hidden>当前条件没有匹配产品。未知值不会被当作 0。</div>
+          <div class="list-pager" id="list-pager">
+            <span id="page-status"></span>
+            <div><button class="secondary-button" id="prev-page" type="button">上一页</button><button class="secondary-button" id="next-page" type="button">下一页</button></div>
+          </div>
+        </section>
+        <section class="panel verification-panel" id="verification-panel" hidden>
+          <div class="panel-heading"><div><p class="section-kicker">按需使用</p><h2>来源核验工具</h2></div><button class="text-button" id="hide-verification" type="button">收起</button><span id="verification-summary" class="verification-summary"></span></div>
+          <p class="list-note">自动线索不等于错误，也不是必须清零的作业；多规格本身不算错误。日常分类和核心选择直接用产品编辑，只有需要核对来源时使用这里。</p>
+          <div class="verification-toolbar">
+            <label>查找品牌 / 产品 <input id="verification-search" type="search" placeholder="输入品牌或产品名"></label>
+            <label>处理批次 <select id="verification-priority"><option value="1">第一批：进口属性待核</option><option value="">全部线索</option><option value="2">第二批：其他事实/角色</option><option value="3">第三批：页面声称</option></select></label>
+            <label>核验项 <select id="verification-field"><option value="">全部类别</option><option value="import_origin">成品产地/属性</option><option value="import_procedure">进口手续</option><option value="core_role">核心角色</option><option value="package_size">包装规格</option><option value="marketing_claims">页面声称</option></select></label>
+            <label>状态 <select id="verification-status"><option value="open">待处理（含需复核）</option><option value="">全部状态</option><option value="pending">自动待核</option><option value="stale">源变化需复核</option><option value="needs_evidence">待补证据</option><option value="disputed">有冲突</option><option value="verified">证据已核</option><option value="user_confirmed">人工已确认属性</option></select></label>
+          </div>
+          <div id="verification-list" class="verification-list"></div>
+          <div class="list-pager"><span id="verification-page-status"></span><div><button class="secondary-button" id="verification-prev" type="button">上一页</button><button class="secondary-button" id="verification-next" type="button">下一页</button></div></div>
+        </section>
+        <footer class="tool-signature" aria-label="工具署名">
+          <span>査老师的宠物小灶</span>
+          <button type="button" class="text-button" id="open-tool-about">关于与联系</button>
+        </footer>
+      </div>
+    </section>
+  </main>
+
+  <div class="overlay" id="detail-overlay" hidden>
+    <article class="drawer" aria-modal="true" aria-labelledby="detail-title">
+      <button class="close-button" data-close="detail-overlay" aria-label="关闭">×</button>
+      <div id="detail-content"></div>
+    </article>
+  </div>
+
+  <div class="overlay" id="compare-overlay" hidden>
+    <article class="compare-modal" aria-modal="true" aria-labelledby="compare-title">
+      <button class="close-button" data-close="compare-overlay" aria-label="关闭">×</button>
+      <div id="compare-content"></div>
+    </article>
+  </div>
+
+  <div class="overlay" id="edit-overlay" hidden>
+    <article class="drawer edit-drawer" aria-modal="true" aria-labelledby="edit-title">
+      <button class="close-button" data-close="edit-overlay" aria-label="关闭">×</button>
+      <div id="edit-content"></div>
+    </article>
+  </div>
+
+  <div class="overlay" id="verification-overlay" hidden>
+    <article class="drawer edit-drawer" aria-modal="true" aria-labelledby="verification-title">
+      <button class="close-button" data-close="verification-overlay" aria-label="关闭">×</button>
+      <div id="verification-content"></div>
+    </article>
+  </div>
+
+  <div class="overlay" id="data-guide-overlay" hidden>
+    <article class="drawer" role="dialog" aria-modal="true" aria-labelledby="data-guide-title">
+      <button class="close-button" data-close="data-guide-overlay" aria-label="关闭资料说明">×</button>
+      <h2 id="data-guide-title">使用与指标说明</h2>
+      <p class="detail-help">先看含义，再比较数字。这里解释怎样读懂资料，不替产品作质量评级。</p>
+      <nav class="reading-guide-nav" aria-label="说明主题">
+        <button type="button" class="text-button" data-guide-section="guide-indicators">营养数值</button>
+        <button type="button" class="text-button" data-guide-section="guide-price">价格</button>
+        <button type="button" class="text-button" data-guide-section="guide-ingredients">配料与消化率</button>
+        <button type="button" class="text-button" data-guide-section="guide-process">阶段与功能</button>
+        <button type="button" class="text-button" data-guide-section="guide-use">图表与排序</button>
+        <button type="button" class="text-button" data-guide-section="guide-brand-factory">品牌与工厂</button>
+        <button type="button" class="text-button" data-guide-section="guide-about">关于与联系</button>
+      </nav>
+      <section class="detail-section" id="guide-indicators"><h3>指标与查看口径</h3>
+        <p><strong>保证值不等于实测值。</strong>≥ 表示保证下限，≤ 表示保证上限。没有比较符也不能自动当成实测；需要看原文是否注明检测及其样品、批次、日期和方法。</p>
+        <details class="reading-topic" open><summary>磷：标示得低，不一定实际更低</summary>
+          <p>例如“磷≥0.8%”，只承诺至少达到0.8%，不是说实际含量就是0.8%。不能据此断定它比“磷≥1.0%”的产品实际磷更低。</p>
+          <p>不同生命阶段、适用标准及品牌标示方式可能影响保证下限。成猫粮和幼猫粮应结合各自标签与适用标准阅读，不能把所有差异都归因于标准，也不能仅凭保证下限认定“低磷”。</p>
+          <p>两个最低保证值相除，也不是实际钙磷比。需要限制磷摄入时，应由兽医结合个体情况及可靠的产品资料判断。</p>
+        </details>
+        <details class="reading-topic"><summary>水溶性氯化物、钠与“咸不咸”</summary>
+          <p>水溶性氯化物通常以Cl计，既不等于食盐含量，也不等于钠含量。它的保证下限不能直接表示咸度，更不能代替限钠判断；钠需要看独立标示或检测记录。</p>
+        </details>
+        <details class="reading-topic"><summary>干物质、原物质与单位：先确认比较的是同一件事</summary>
+          <p>原物质包含水分；干物质是扣除水分后的口径。干粮与湿粮尤其不能直接拿标签百分比比高低。本页不自动换算两种基准；水分保证上限也不能当成实测水分作精确换算。</p>
+          <p>%、mg/kg、IU/kg和每单位能量的含量不是同一口径。排序会按系统识别的单位分组，但不能保证基准、测法或上下限都一致；请结合详情原文比较。</p>
+        </details>
+        <details class="reading-topic"><summary>蛋白、脂肪、粗灰分与其他营养指标</summary>
+          <p>粗蛋白不直接说明蛋白来源、氨基酸平衡或消化利用程度；蛋白和脂肪也不是越高越好。粗灰分是矿物残留总量指标，不等于“添加的灰”或杂质；粗纤维不等于总膳食纤维。</p>
+          <p>牛磺酸、维生素、矿物质及脂肪酸需要结合生命阶段、完整配方和标示口径阅读，不做单项越高越好的排名。配料中的添加量不等于成品实测总含量；Omega-3也不能直接当成EPA+DHA含量。</p>
+          <p>能量要分清代谢能及其测定或估算方法；kcal/kg与kcal/100g须统一后比较。未收录能量时，不用蛋白脂肪粗略替代每日喂养量。</p>
+        </details>
+        <div id="guide-metric-directory"></div>
+      </section>
+      <section class="detail-section" id="guide-price"><h3>价格：比较前先看规格与报价条件</h3>
+        <p>价格是已收录资料中的参考记录，不是实时售价。渠道、日期、包装净重、购买数量、优惠券、赠品及运费都可能影响到手价；缺少报价条件时不能当成同条件最低价。</p>
+        <p>元/斤按500克比较；页面价格通常是某包装或组合的报价。多规格与价格尚未对应时，不应直接算作该规格的实际到手价。相同元/斤也不等于每日喂养成本相同，后者还取决于能量密度、喂养量和猫的情况。</p>
+      </section>
+      <section class="detail-section" id="guide-ingredients"><h3>配料、动物性比例与消化率</h3>
+        <p><strong>先看分母。</strong>动物性原料添加比例，不等于动物性蛋白占总蛋白的比例；两者不能互相替代。鲜肉和肉粉含水量不同，仅比较添加百分比不能判断谁提供的动物性蛋白更多。</p>
+        <p>配料顺序通常反映投料重量顺序，不代表成品中的蛋白贡献顺序；鲜料脱水、复合原料和拆分列项都会影响理解。无谷不等于无碳水，也不自动等于低敏；“单一肉源”仍需核对完整配料和其他动物来源。</p>
+        <p>胃蛋白酶消化率与动物喂养试验中的消化率是不同测法；干物质、蛋白等消化率的测定对象也可能不同。不能仅凭两个百分比作跨方法排名，更不能直接推算每只猫的吸收率。</p>
+      </section>
+      <section class="detail-section" id="guide-process"><h3>生命阶段、工艺与功能</h3>
+        <p>幼猫、成猫、老年和全阶段是适用范围或产品定位，不是品质等级。“全阶段”不代表每只猫在任何健康状态下都适合；应核对产品标签、适用标准和个体需求。</p>
+        <p>功能分类可能来自产品定位，也可能附有研究资料；未标研究不等于没有效果，有研究也不等于对每只猫都有效。查看研究对应的产品/配方、对象、样本量、时长、对照及结果，原料研究不能直接当成成品功效证据。</p>
+        <p>适口性不等于长期营养效果；喂养试验、消化率试验与特定功能试验回答的问题不同。普通产品的功能描述不能代替疾病诊断或治疗。</p>
+        <div id="guide-process-content"></div>
+      </section>
+      <section class="detail-section" id="guide-use"><h3>筛选、排序、图表与偏好评分</h3>
+        <p><strong>先筛全部结果，再排序，最后分页。</strong>每页15/30/50款只影响显示数量。表头排序依次为正序、倒序、恢复；切换另一表头时，原排序可作为同值时的次级排序，优先级以表上提示为准。</p>
+        <p>数值排序比较的是已记录数字，不是实际营养高低或质量排名。≥、≤、实测值和基准未明的记录不能因为排在一起就视为完全可比。空白、—或未收录不代表零；范围、多值或口径不清的原文可能仍在详情中，但不进入对应数值比较。</p>
+        <p>图中参考交点只是你设置的视觉参考，不是合格线，也不改变坐标值。点上的数字表示重叠产品款数；颜色表示所选类别，不表示品质等级。缺少当前轴指标的产品不画点，仍保留在列表；价格放大只改图形范围。</p>
+        <p>偏好分数表示与当前条件和权重的匹配，不是营养合格率、医学评价或品质评级。先看分项与缺失原因，再看总分；不同方案的分数不能直接混排。</p>
+        <p>核心产品由Charles人工确定，是重点比较范围，不是销量或品质排名。内部版星标用于保存核心选择，比较勾选只临时选入2–6款；公开版规划隐藏星标操作列，只保留核心筛选，访客不能修改。</p>
+        <p>生成日期是本次看板整理时间，不代表每条资料都在当天核实。旧报价、旧配方和旧工厂记录需要结合各自来源日期与适用版本查看。</p>
+      </section>
+      <section class="detail-section" id="guide-brand-factory"><h3>品牌与工厂</h3>
+        <p>品牌所属地不等于生产地；进口属性不代表原料全部进口，也不是品质等级。自有或代工描述生产关系，不能单独说明质量；同品牌不同产品、批次或时期可能由不同工厂生产，供应商也不等于成品制造商。</p>
+        <p>来源分级保留：S 官网/官方、T 权威媒体、C 一般来源、U 未证实。等级帮助识别出处，不是品牌评分；官网声明也不等于独立验证。具体结论仍需看来源内容、日期、适用范围与是否存在冲突。</p>
+        <p>工厂成立年份、设计产能、实际产量与集团总规模不是同一概念。舆情、监管通报和召回应区分事件性质、时间、地区及批次，不能把单一事件外推到品牌全部现役产品。</p>
+        <div id="guide-brand-host"></div>
+        <details class="detail-section"><summary>本库已有工厂记录</summary><div id="guide-factory-content"></div></details>
+      </section>
+      <section class="detail-section" id="guide-about">
+        <h3>关于本工具</h3>
+        <p>由<strong>査老师的宠物小灶</strong>整理与维护，帮助你查找产品资料、理解差异并进行比较。</p>
+        <p><strong>联系与纠错：</strong>在抖音或小红书搜索“査老师的宠物小灶”。如发现信息有误，欢迎附上产品名称、问题说明及可核对的链接或包装照片。</p>
+        <h3>公开信息与使用声明</h3>
+        <p>资料主要整理自品牌官网、产品页面、包装标签、监管公示及其他网络公开信息。不同来源可能存在更新延迟、遗漏或表述差异；公开可查不等于已经独立验证，请结合记录日期、来源及当前产品标签阅读。</p>
+        <p>价格仅供参考，不是实时报价或购买承诺。营养保证值不等于实测值；品牌宣传、功能声称与市场排名按各自证据范围展示，不代表本工具对功效、品质或安全作出保证。</p>
+        <p>筛选、比较与测试中的偏好分数用于辅助理解，不构成质量认证、购买推荐或兽医诊疗建议。涉及疾病、处方饮食或特殊营养需求，请咨询兽医，并结合宠物实际情况判断。</p>
+        <p>本工具的整理与维护署名不改变第三方资料、商标及图片的权利归属，也不表示相关品牌与本工具存在合作或背书关系。如有内容或权利问题，可通过上述账号联系核查、更正或处理。本声明不排除依法应承担的责任。</p>
+      </section>
+    </article>
+  </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+<aside id="release-status" role="status" style="position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;max-width:90vw;padding:14px 22px;background:#fff9ef;color:#413d32;border:1px solid #ded5c5;border-radius:14px;box-shadow:0 4px 20px #0002"><span id="release-message" aria-live="polite">正在载入猫粮资料…</span> <a id="release-retry" href="" hidden>重新加载</a><noscript>请启用浏览器 JavaScript 后重新打开。</noscript></aside><script defer src="release-bootstrap.js"></script></body>
 </html>
