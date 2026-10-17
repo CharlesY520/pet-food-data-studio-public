@@ -3,16 +3,6 @@
   const status=document.getElementById('release-status');
   const message=document.getElementById('release-message');
   const progress=text=>{message.textContent=text;};
-  let payloadPromise;
-  const payload = () => payloadPromise ||= (async () => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 30000);
-    try {
-      const response = await fetch('./display-a41a1ba46ca69af4.json', {signal:controller.signal});
-      if (!response.ok) throw new Error('资料暂时未能加载，请重新加载');
-      return await response.json();
-    } finally { clearTimeout(timer); }
-  })();
   const publicTextQuery = (() => { const module={exports:{}}; const require=()=>({});
 (function (root) {
   'use strict';
@@ -293,15 +283,113 @@
 
 return module.exports;
  })();
-  const get = async url => {
-    const p = await payload(), u = new URL(url, location.origin);
-    if(u.pathname === '/api/release') return {...p,total:p.products.length};
-    if(u.searchParams.get('revision') !== p.revision) throw new Error('资料已更新，请重新加载');
-    if(u.pathname === '/api/products') return {revision:p.revision,products:p.products.slice(Number(u.searchParams.get('offset')),Number(u.searchParams.get('offset'))+25)};
-    if(u.pathname.startsWith('/api/products/')) return {product:p.details[decodeURIComponent(u.pathname.split('/').pop())]};
-    if(u.pathname === '/api/text-search') return Object.fromEntries(Object.values(p.details).map(row=>[row.skuId,publicTextQuery.textEvidence(row,JSON.parse(u.searchParams.get('q')))]));
-    throw new Error('未知资料请求');
-  };
+  const staticLoader = // Inlined into the public bootstrap by build_github_release.py.
+(() => {
+  'use strict';
+  function create(config, options = {}, env = globalThis) {
+    const progress = options.progress || (() => {});
+    const promises = new Map();
+    const cacheName = 'pfds-public-v2-' + config.revision;
+    const valid = (value, kind) => value && value.schema === 2 &&
+      value.revision === config.revision && value.kind === kind;
+    async function read(file, kind, check = () => true) {
+      if (promises.has(file)) return promises.get(file);
+      const task = (async () => {
+        const url = new URL('./' + file, env.location.href).href;
+        let cache;
+        try {
+          cache = await env.caches?.open(cacheName);
+          const saved = await cache?.match(url);
+          if (saved) {
+            const value = await saved.json();
+            if (valid(value, kind) && check(value)) return value;
+            await cache.delete(url);
+          }
+        } catch (_) { /* Private mode / blocked storage must not stop loading. */ }
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const controller = new env.AbortController();
+          const timer = env.setTimeout(() => controller.abort(), 20000 + attempt * 10000);
+          try {
+            const response = await env.fetch(url, {
+              signal: controller.signal, cache: attempt ? 'reload' : 'default'
+            });
+            if (!response.ok) {
+              const error = new Error(response.status === 404
+                ? '资料版本已更新，请重新加载页面' : '资料暂时未能加载');
+              error.noRetry = response.status === 404 || response.status === 403;
+              throw error;
+            }
+            const value = await response.clone().json();
+            if (!valid(value, kind) || !check(value)) throw new Error('资料不完整');
+            // Caching is optional and never on the critical rendering path.
+            try { Promise.resolve(cache?.put(url, response)).catch(() => {}); } catch (_) {}
+            return value;
+          } catch (error) {
+            if (error.noRetry) throw error;
+            if (attempt === 2) throw new Error('网络连接不稳定，资料未加载完成。请点击重新加载，已缓存的资料无需重新下载。');
+            progress('网络较慢，正在重试当前资料（' + (attempt + 1) + '/2）…');
+            await new Promise(resolve => env.setTimeout(resolve, 400 * (attempt + 1)));
+          } finally { env.clearTimeout(timer); }
+        }
+      })();
+      promises.set(file, task);
+      try { return await task; }
+      catch (error) { promises.delete(file); throw error; }
+    }
+    const catalog = () => read(config.catalog, 'catalog', value =>
+      value.total === config.total && Array.isArray(value.productPages) &&
+      value.productPages.reduce((n, p) => n + p.count, 0) === value.total &&
+      value.detailFiles && Object.keys(value.detailFiles).length === value.total);
+    async function detail(info, id) {
+      const file = info.detailFiles[id];
+      if (!file) throw new Error('未找到产品');
+      const expected = Object.keys(info.detailFiles).filter(key => info.detailFiles[key] === file);
+      const part = await read(file, 'details', value => value.details &&
+        Object.keys(value.details).length === expected.length &&
+        expected.every(key => value.details[key]?.skuId === key));
+      if (!part.details[id]) throw new Error('产品资料不完整，请重新加载');
+      return part.details[id];
+    }
+    async function get(url) {
+      const info = await catalog(), u = new URL(url, env.location.origin);
+      if (u.pathname === '/api/release') return info;
+      if (u.searchParams.get('revision') !== config.revision) throw new Error('资料已更新，请重新加载');
+      if (u.pathname === '/api/products') {
+        const offset = Number(u.searchParams.get('offset'));
+        const page = info.productPages.find(p => p.offset === offset);
+        if (!page) throw new Error('未知产品分页');
+        const part = await read(page.file, 'products', value => Array.isArray(value.products) &&
+          value.products.length === page.count && new Set(value.products.map(p => p.skuId)).size === page.count &&
+          value.products.every(p => info.detailFiles[p.skuId]));
+        return {revision: config.revision, products: part.products};
+      }
+      if (u.pathname.startsWith('/api/products/')) {
+        return {product: await detail(info, decodeURIComponent(u.pathname.split('/').pop()))};
+      }
+      if (u.pathname === '/api/text-search') {
+        const files = [...new Set(Object.values(info.detailFiles))], parts = new Array(files.length);
+        const query = JSON.parse(u.searchParams.get('q'));
+        let cursor = 0, done = 0;
+        await Promise.all(Array.from({length: Math.min(3, files.length)}, async () => {
+          while (cursor < files.length) {
+            const i = cursor++, file = files[i];
+            const id = Object.keys(info.detailFiles).find(id => info.detailFiles[id] === file);
+            await detail(info, id);
+            parts[i] = await read(file, 'details');
+            done++;
+            options.onSearchProgress?.(done, files.length);
+          }
+        }));
+        return Object.fromEntries(parts.flatMap(part => Object.values(part.details))
+          .map(row => [row.skuId, options.textEvidence(row, query)]));
+      }
+      throw new Error('未知资料请求');
+    }
+    return get;
+  }
+  return {create};
+})();
+  const get = staticLoader.create({"catalog": "display-catalog-8fab8eb3c3fd68aa.json", "revision": "3e788e7f5adfd250", "total": 199}, {progress, textEvidence: publicTextQuery.textEvidence});
   try {
     const info=await get('/api/release'),products=[];
     const pages=new Array(Math.ceil(info.total/25));
