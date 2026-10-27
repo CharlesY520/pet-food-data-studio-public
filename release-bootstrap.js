@@ -389,7 +389,7 @@ return module.exports;
   }
   return {create};
 })();
-  const get = staticLoader.create({"catalog": "display-catalog-8fab8eb3c3fd68aa.json", "revision": "3e788e7f5adfd250", "total": 199}, {progress, textEvidence: publicTextQuery.textEvidence});
+  const get = staticLoader.create({"catalog": "display-catalog-ccb5631cdac972d5.json", "revision": "349c5b6afcd8cb77", "total": 199}, {progress, textEvidence: publicTextQuery.textEvidence});
   try {
     const info=await get('/api/release'),products=[];
     const pages=new Array(Math.ceil(info.total/25));
